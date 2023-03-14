@@ -71,6 +71,41 @@ namespace PRS.Controllers
 
             return NoContent();
         }
+        [HttpPut("review/{id}")]
+        public async Task<IActionResult> Review(int id, Request request)
+        {
+        // var question = await _context.Requests.SingleOrDefaultAsync();
+            if (id != request.Id)
+            {
+                return BadRequest();
+            }
+           else if (request.Total > 50)
+            {
+                request.Status = "REVIEW";
+                _context.Entry(request).State = EntityState.Modified;
+            }
+            else if (request.Total <= 50 && request.Total > 0)
+            {
+                request.Status = "APPROVED";
+                _context.Entry(request).State = EntityState.Modified;
+            }
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RequestExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            return NoContent();
+        }
 
         // POST: api/Requests
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
