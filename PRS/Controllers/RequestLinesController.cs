@@ -40,6 +40,45 @@ namespace PRS.Controllers
 
             return requestLine;
         }
+        private async Task RecalculateRequestTotal(int requestId)
+        {
+            var request = await _context.Requests.FindAsync(requestId);
+            if (request == null)
+            {
+                return;
+            }
+            var requestLines = await _context.RequestLines
+                .Where(rl => rl.RequestId == requestId)
+                .ToListAsync();
+            decimal newTotal = 0;
+            foreach(var requestLine in requestLines)
+            {
+                if(requestLine != null && requestLine.Product != null)
+                {
+                    newTotal += requestLine.Quantity * requestLine.Product.Price;
+                }
+            }
+            request.Total = newTotal;
+            _context.Entry(request).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RequestLineExists(requestId))
+                {
+                    return;
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return;
+        }
 
         // PUT: api/RequestLines/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -56,6 +95,7 @@ namespace PRS.Controllers
             try
             {
                 await _context.SaveChangesAsync();
+                await RecalculateRequestTotal(requestLine.RequestId);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -79,6 +119,7 @@ namespace PRS.Controllers
         {
             _context.RequestLines.Add(requestLine);
             await _context.SaveChangesAsync();
+            await RecalculateRequestTotal(requestLine.RequestId);
 
             return CreatedAtAction("GetRequestLine", new { id = requestLine.Id }, requestLine);
         }
@@ -95,6 +136,7 @@ namespace PRS.Controllers
 
             _context.RequestLines.Remove(requestLine);
             await _context.SaveChangesAsync();
+            await RecalculateRequestTotal(requestLine.RequestId);
 
             return NoContent();
         }
