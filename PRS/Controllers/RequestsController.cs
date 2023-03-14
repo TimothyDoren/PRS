@@ -41,9 +41,23 @@ namespace PRS.Controllers
             return request;
         }
 
-        // PUT: api/Requests/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+        [HttpGet("reviews/{userId}")]
+        public async Task<ActionResult<IEnumerable<Request>>> GetReviews(int userId)
+            {
+            var requests = await _context.Requests
+             .Where(r => r.Status == "REVIEW" && r.UserId != userId)
+             .ToListAsync();
+               if(requests == null)
+               {
+               return NotFound();
+               }
+                return requests;  
+            }
+
+
+    // PUT: api/Requests/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPut("{id}")]
         public async Task<IActionResult> PutRequest(int id, Request request)
         {
             if (id != request.Id)
@@ -89,6 +103,59 @@ namespace PRS.Controllers
                 request.Status = "APPROVED";
                 _context.Entry(request).State = EntityState.Modified;
             }
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RequestExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            return NoContent();
+        }
+        [HttpPut("approve/{id}")]
+        public async Task<IActionResult> Approve(int id, Request request)
+        {
+            if (id != request.Id)
+            {
+                return BadRequest();
+            }
+            request.Status = "APPROVED";
+            _context.Entry(request).State = EntityState.Modified;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RequestExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            return NoContent();
+        }
+
+        [HttpPut("reject/{id}")]
+        public async Task<IActionResult> Reject(int id, Request request)
+        {
+            if (id != request.Id)
+            {
+                return BadRequest();
+            }
+            request.Status = "REJECTED";
+            _context.Entry(request).State = EntityState.Modified;
             try
             {
                 await _context.SaveChangesAsync();
