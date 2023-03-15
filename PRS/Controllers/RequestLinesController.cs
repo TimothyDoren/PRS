@@ -40,44 +40,30 @@ namespace PRS.Controllers
 
             return requestLine;
         }
-        private async Task RecalculateRequestTotal(int requestId)
+        private async Task<decimal> RecalculateRequestTotal(int requestId)
         {
-            var request = await _context.Requests.FindAsync(requestId);
-            if (request == null)
-            {
-                return;
-            }
-            var requestLines = await _context.RequestLines
-                .Where(rl => rl.RequestId == requestId)
-                .ToListAsync();
+           var requestLines = await _context.RequestLines
+                            .Where(rl => rl.RequestId == requestId)
+                            .ToListAsync();
             decimal newTotal = 0;
             foreach(var requestLine in requestLines)
             {
-                if(requestLine != null && requestLine.Product != null)
-                {
-                    newTotal += requestLine.Quantity * requestLine.Product.Price;
-                }
+                var prod = await _context.Products.FindAsync(requestLine.ProductId);
+                var lineTotal = requestLine.Quantity * prod.Price;
+                newTotal += lineTotal;
             }
-            request.Total = newTotal;
-            _context.Entry(request).State = EntityState.Modified;
-
-            try
+            var request = await _context.Requests.FindAsync(requestId);
+            if(request != null)
             {
+                request.Total = newTotal;
                 await _context.SaveChangesAsync();
+                return request.Total;
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!RequestLineExists(requestId))
-                {
-                    return;
-                }
-                else
-                {
-                    throw;
-                }
+                throw new Exception("Request is not valid!");
             }
-
-            return;
+            
         }
 
         // PUT: api/RequestLines/5
@@ -145,5 +131,41 @@ namespace PRS.Controllers
         {
             return _context.RequestLines.Any(e => e.Id == id);
         }
+         //var request = await _context.Requests.FindAsync(requestId);
+         //   if (request == null)
+         //   {
+         //       return;
+         //   }
+         //   var requestLines = await _context.RequestLines
+         //       .Where(rl => rl.RequestId == requestId)
+         //       .ToListAsync();
+         //   decimal newTotal = 0;
+         //   foreach(var requestLine in requestLines)
+         //   {
+         //       if(requestLine != null && requestLine.Product != null)
+         //       {
+         //           newTotal += requestLine.Quantity * requestLine.Product.Price;
+         //       }
+         //   }
+         //   request.Total = newTotal;
+         //   _context.Entry(request).State = EntityState.Modified;
+
+         //   try
+         //   {
+         //       await _context.SaveChangesAsync();
+         //   }
+         //   catch (DbUpdateConcurrencyException)
+         //   {
+         //       if (!RequestLineExists(requestId))
+         //       {
+         //           return;
+         //       }
+         //       else
+         //       {
+         //           throw;
+         //       }
+         //   }
+
+         //   return;
     }
 }
