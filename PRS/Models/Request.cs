@@ -28,6 +28,8 @@ namespace PRS.Models
         [JsonIgnore]
         public virtual User? User { get; set; }
 
+        public virtual ICollection<RequestLine>? RequestLines { get; set; }
+
 
 
 
